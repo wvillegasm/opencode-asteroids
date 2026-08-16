@@ -43,3 +43,13 @@ Luego visita `http://localhost:3000`.
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
+
+## Releases
+
+Los pull requests fusionados en `develop` actualizan automáticamente la versión patch,
+publican un prerelease con el tag `vX.Y.Z-dev.N` y despliegan la versión de desarrollo
+en GitHub Pages. `N` es el número de ejecución de GitHub Actions. Los cambios directos
+en `develop` no publican releases.
+
+Los releases estables se ejecutan manualmente desde `main`. Usan el tag reservado
+`vX.Y.Z`, crean un GitHub Release normal y no cambian el despliegue de GitHub Pages.
