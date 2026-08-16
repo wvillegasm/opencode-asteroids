@@ -43,3 +43,14 @@ Luego visita `http://localhost:3000`.
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
+- Power-ups especiales que aparecen aleatoriamente en el campo
+
+## Power-ups
+
+| Power-up | Efecto | Duración | Color |
+| -------- | ------ | -------- | ----- |
+| Speed    | Duplica la propulsión de la nave (velocidad de movimiento) | 5 s | Cian |
+
+Los power-ups.derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
+
+## el codigo fuente y comentarios deberan estar en Ingles
