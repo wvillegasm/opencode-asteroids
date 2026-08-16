@@ -1,56 +1,129 @@
-name: Release (develop)
+name: Development release
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [develop]
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: release-develop
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   release:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
 
-      - uses: oven-sh/setup-bun@v2
-
-      - run: bun install --frozen-lockfile
-
-      - name: Read version from package.json
-        id: ver
-        run: echo "version=v$(bun -e 'console.log(require("./package.json").version)')" >> "$GITHUB_OUTPUT"
-
-      - name: Check if tag already exists
-        id: skip
+      - name: Detect manual version change
+        id: version
         run: |
-          if git ls-remote --tags origin "refs/tags/${{ steps.ver.outputs.version }}" | grep -q .; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          current_version=$(node -p "require('./package.json').version")
+          echo "current=$current_version" >> "$GITHUB_OUTPUT"
+          if ! git cat-file -e "${{ github.event.pull_request.base.sha }}:package.json" 2>/dev/null; then
+            echo "package.json is new; preserving its version."
+            echo "manual=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git show "${{ github.event.pull_request.base.sha }}:package.json" > "$RUNNER_TEMP/base-package.json"
+          base_version=$(node -p "require('$RUNNER_TEMP/base-package.json').version")
+          if [ "$base_version" != "$current_version" ]; then
+            echo "manual=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "manual=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Skip (tag exists)
-        if: steps.skip.outputs.exists == 'true'
-        run: echo "Tag ${{ steps.ver.outputs.version }} already exists; skipping release."
+      - name: Compute patch bump
+        id: bump
+        if: steps.version.outputs.manual == 'false'
+        run: |
+          version="${{ steps.version.outputs.current }}"
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version '$version' is not a plain major.minor.patch value."
+            exit 1
+          fi
+          major="${version%%.*}"
+          rest="${version#*.}"
+          minor="${rest%%.*}"
+          patch="${rest#*.}"
+          echo "next=$major.$minor.$((patch + 1))" >> "$GITHUB_OUTPUT"
 
-      - name: Build binary
-        if: steps.skip.outputs.exists != 'true'
-        run: bun run build
+      - name: Write automatic version bump
+        if: steps.version.outputs.manual == 'false'
+        run: |
+          node -e '
+            const fs = require("fs");
+            const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            packageJson.version = "${{ steps.bump.outputs.next }}";
+            fs.writeFileSync("package.json", JSON.stringify(packageJson, null, "\t") + "\n");
+          '
 
-      - name: Rename binary
-        if: steps.skip.outputs.exists != 'true'
-        run: mv weather weather-linux-x64
+      - name: Commit automatic version bump
+        if: steps.version.outputs.manual == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to v${{ steps.bump.outputs.next }} [auto]"
+          git pull --rebase origin develop
+          git push origin HEAD:develop
 
-      - name: Create release
-        if: steps.skip.outputs.exists != 'true'
+      - name: Read release version
+        id: release
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version '$version' is not a plain major.minor.patch value."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version-dev.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create development tag
+        run: |
+          tag="${{ steps.release.outputs.tag }}"
+          if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
+            echo "Tag $tag already exists. Aborting."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Development release $tag"
+          git push origin "$tag"
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Verify static site bundle
+        run: test -f dist/index.html && test -f dist/game.js && test -f dist/favicon.svg
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Create development prerelease
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.ver.outputs.version }}
-          name: Release ${{ steps.ver.outputs.version }}
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: Development ${{ steps.release.outputs.tag }}
           generate_release_notes: true
-          files: weather-linux-x64
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
