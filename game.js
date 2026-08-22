@@ -128,7 +128,7 @@ class Asteroid {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); }
+  constructor() { this.reset(); this.speedTimer = 0; }
 
   reset() {
     this.x      = W / 2;
@@ -141,7 +141,6 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.dead          = false;
-    this.speedTimer    = 0;     // >0 while speed power-up is active
   }
 
   update(dt) {
