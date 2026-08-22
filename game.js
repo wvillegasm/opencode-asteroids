@@ -405,12 +405,10 @@ function update(dt) {
   powerups.forEach(p => p.update(dt));
 
   // Power-up spawn timer (only one on screen at a time)
-  if (powerups.length === 0) {
-    powerupSpawnTimer -= dt;
-    if (powerupSpawnTimer <= 0) {
-      spawnPowerUp();
-      resetPowerUpTimer();
-    }
+  powerupSpawnTimer -= dt;
+  if (powerupSpawnTimer <= 0) {
+    if (powerups.length === 0) spawnPowerUp();
+    resetPowerUpTimer();
   }
 
   bullets   = bullets.filter(b => !b.dead);

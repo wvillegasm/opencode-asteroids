@@ -51,9 +51,9 @@ Luego visita `http://localhost:3000`.
 | -------- | ------ | -------- | ----- |
 | Speed    | Duplica la propulsión de la nave (velocidad de movimiento) | 5 s | Cian |
 
-Los power-ups.derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
+Los power-ups derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
 
-## el codigo fuente y comentarios deberan estar en Ingles
+## El código fuente y comentarios deberán estar en inglés
 
 ## Releases
 
