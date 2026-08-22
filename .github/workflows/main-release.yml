@@ -1,0 +1,87 @@
+name: Stable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 1.0.0)"
+        required: true
+      label:
+        description: "Release title/label"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version '${{ inputs.version }}' is not a plain major.minor.patch value."
+            exit 1
+          fi
+
+      - name: Check if tag already exists
+        id: skip
+        run: |
+          if git ls-remote --tags origin "refs/tags/v${{ inputs.version }}" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail on duplicate tag
+        if: steps.skip.outputs.exists == 'true'
+        run: |
+          echo "Tag v${{ inputs.version }} already exists. Aborting."
+          exit 1
+
+      - name: Bump package.json version
+        run: |
+          node -e '
+            const fs = require("fs");
+            const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            packageJson.version = "${{ inputs.version }}";
+            fs.writeFileSync("package.json", JSON.stringify(packageJson, null, "\t") + "\n");
+          '
+
+      - name: Commit bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: release v${{ inputs.version }}"
+            git push origin HEAD
+          fi
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Verify static site bundle
+        run: test -f dist/index.html && test -f dist/game.js && test -f dist/favicon.svg
+
+      - name: Create stable tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: ${{ inputs.label }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

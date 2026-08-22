@@ -54,3 +54,13 @@ Luego visita `http://localhost:3000`.
 Los power-ups.derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
 
 ## el codigo fuente y comentarios deberan estar en Ingles
+
+## Releases
+
+Los pull requests fusionados en `develop` actualizan automáticamente la versión patch,
+publican un prerelease con el tag `vX.Y.Z-dev.N` y despliegan la versión de desarrollo
+en GitHub Pages. `N` es el número de ejecución de GitHub Actions. Los cambios directos
+en `develop` no publican releases.
+
+Los releases estables se ejecutan manualmente desde `main`. Usan el tag reservado
+`vX.Y.Z`, crean un GitHub Release normal y no cambian el despliegue de GitHub Pages.
