@@ -441,9 +441,9 @@ function update(dt) {
     }
   }
 
-  // Nave vs power-up
+  // Nave vs power-up (skip if ship died this tick)
   for (const p of powerups) {
-    if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
+    if (!ship.dead && !p.dead && dist(ship, p) < ship.radius + p.radius) {
       p.dead = true;
       ship.speedTimer = SPEED_POWER_DURATION;
       explode(p.x, p.y, 10);
