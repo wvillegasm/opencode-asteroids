@@ -1,6 +1,6 @@
 {
 	"name": "opencode-asteroids",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"private": true,
 	"description": "Classic Asteroids arcade game implemented with HTML5 Canvas",
 	"scripts": {
