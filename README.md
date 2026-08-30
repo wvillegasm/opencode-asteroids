@@ -60,6 +60,7 @@ Desaparece al salir de la pantalla o a los 6 s. Daña la nave al contacto.
 | Power-up | Efecto | Duración | Color |
 | -------- | ------ | -------- | ----- |
 | Speed    | Duplica la propulsión de la nave (velocidad de movimiento) | 5 s | Cian |
+| Triple Shot | Dispara 3 balas en abanico por cada disparo | 5 s | Naranja |
 
 Los power-ups derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
 
