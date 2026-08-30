@@ -26,41 +26,51 @@ jobs:
           fetch-depth: 0
 
       - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if ! echo "${{ inputs.version }}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "Version '${{ inputs.version }}' is not a plain major.minor.patch value."
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version '$VERSION' is not a plain major.minor.patch value."
             exit 1
           fi
 
       - name: Check if tag already exists
         id: skip
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if git ls-remote --tags origin "refs/tags/v${{ inputs.version }}" | grep -q .; then
+          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q .; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Fail on duplicate tag
         if: steps.skip.outputs.exists == 'true'
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          echo "Tag v${{ inputs.version }} already exists. Aborting."
+          echo "Tag v$VERSION already exists. Aborting."
           exit 1
 
       - name: Bump package.json version
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           node -e '
             const fs = require("fs");
             const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            packageJson.version = "${{ inputs.version }}";
+            packageJson.version = process.env.VERSION;
             fs.writeFileSync("package.json", JSON.stringify(packageJson, null, "\t") + "\n");
           '
 
       - name: Commit bump
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
           if ! git diff --cached --quiet; then
-            git commit -m "chore: release v${{ inputs.version }}"
+            git commit -m "chore: release v$VERSION"
             git push origin HEAD
           fi
 
@@ -71,11 +81,13 @@ jobs:
         run: test -f dist/index.html && test -f dist/game.js && test -f dist/favicon.svg
 
       - name: Create stable tag
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
-          git push origin "v${{ inputs.version }}"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
