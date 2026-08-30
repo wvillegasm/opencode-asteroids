@@ -43,14 +43,6 @@ jobs:
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fail on duplicate tag
-        if: steps.skip.outputs.exists == 'true'
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          echo "Tag v$VERSION already exists. Aborting."
-          exit 1
-
       - name: Bump package.json version
         env:
           VERSION: ${{ inputs.version }}
@@ -74,6 +66,20 @@ jobs:
             git push origin HEAD
           fi
 
+      - name: Reconcile existing tag
+        if: steps.skip.outputs.exists == 'true'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git fetch origin "refs/tags/v$VERSION"
+          tag_commit="$(git rev-parse "v$VERSION^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+          if [ "$tag_commit" != "$head_commit" ]; then
+            echo "Tag v$VERSION points at $tag_commit but HEAD is $head_commit. Refusing to release."
+            exit 1
+          fi
+          echo "Tag v$VERSION already points at HEAD. Resuming."
+
       - name: Build static site
         run: npm run build
 
@@ -81,6 +87,7 @@ jobs:
         run: test -f dist/index.html && test -f dist/game.js && test -f dist/favicon.svg
 
       - name: Create stable tag
+        if: steps.skip.outputs.exists != 'true'
         env:
           VERSION: ${{ inputs.version }}
         run: |
