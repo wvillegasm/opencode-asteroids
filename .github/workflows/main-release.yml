@@ -1,0 +1,113 @@
+name: Stable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. 1.0.0)"
+        required: true
+      label:
+        description: "Release title/label"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version '$VERSION' is not a plain major.minor.patch value."
+            exit 1
+          fi
+
+      - name: Check if tag already exists
+        id: skip
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump package.json version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            packageJson.version = process.env.VERSION;
+            fs.writeFileSync("package.json", JSON.stringify(packageJson, null, "\t") + "\n");
+          '
+
+      - name: Commit bump
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
+            echo "Refusing to commit: HEAD is not on main."
+            exit 1
+          fi
+          git add package.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: release v$VERSION"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Reconcile existing tag
+        if: steps.skip.outputs.exists == 'true'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git fetch origin "refs/tags/v$VERSION"
+          tag_commit="$(git rev-parse "v$VERSION^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+          if [ "$tag_commit" != "$head_commit" ]; then
+            echo "Tag v$VERSION points at $tag_commit but HEAD is $head_commit. Refusing to release."
+            exit 1
+          fi
+          echo "Tag v$VERSION already points at HEAD. Resuming."
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Verify static site bundle
+        run: test -f dist/index.html && test -f dist/game.js && test -f dist/favicon.svg
+
+      - name: Create stable tag
+        if: steps.skip.outputs.exists != 'true'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: ${{ inputs.label }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

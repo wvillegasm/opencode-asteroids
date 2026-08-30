@@ -32,17 +32,38 @@ Luego visita `http://localhost:3000`.
 
 ## Puntuación
 
-| Asteroide | Puntos |
-| --------- | ------ |
-| Grande    | 20     |
-| Mediano   | 50     |
-| Pequeño   | 100    |
+| Asteroide     | Puntos |
+| ---------     | ------ |
+| Grande        | 20     |
+| Mediano       | 50     |
+| Pequeño       | 100    |
+| Estrella fugaz | 200   |
 
 ## Características
 
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
+- Power-ups especiales que aparecen aleatoriamente en el campo
+- Estrella fugaz: asteroide especial que cruza la pantalla a alta velocidad
+
+## Estrella fugaz
+
+La estrella fugaz es un asteroide especial que aparece raramente (cada 20–35 s).
+Atraviesa la pantalla una sola vez desde un borde hacia el opuesto a ~3× la
+velocidad de un asteroide normal, dejando una estela tipo cometa de color
+cálido. Otorga **200 puntos** al ser destruida pero no se parte en fragmentos.
+Desaparece al salir de la pantalla o a los 6 s. Daña la nave al contacto.
+
+## Power-ups
+
+| Power-up | Efecto | Duración | Color |
+| -------- | ------ | -------- | ----- |
+| Speed    | Duplica la propulsión de la nave (velocidad de movimiento) | 5 s | Cian |
+
+Los power-ups derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
+
+## El código fuente y comentarios deberán estar en inglés
 
 ## Releases
 
