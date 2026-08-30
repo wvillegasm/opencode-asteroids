@@ -46,6 +46,7 @@ Luego visita `http://localhost:3000`.
 - Partículas de explosión al destruir asteroides
 - Power-ups especiales que aparecen aleatoriamente en el campo
 - Estrella fugaz: asteroide especial que cruza la pantalla a alta velocidad
+- Escudo: power-up que protege la nave absorbiendo un impacto y rompiéndose
 
 ## Estrella fugaz
 
@@ -60,8 +61,16 @@ Desaparece al salir de la pantalla o a los 6 s. Daña la nave al contacto.
 | Power-up | Efecto | Duración | Color |
 | -------- | ------ | -------- | ----- |
 | Speed    | Duplica la propulsión de la nave (velocidad de movimiento) | 5 s | Cian |
+| Shield   | Absorbe un golpe de asteroide o estrella fugaz y se rompe | Un golpe | Verde |
 
-Los power-ups derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
+Los power-ups (speed o shield, elegido al azar) derivan lentamente por el campo y envuelven los bordes. Desaparecen a los 10 s si no se recogen. Solo puede haber uno en pantalla a la vez.
+
+## Escudo
+
+El escudo es un power-up que rodea la nave con una burbuja verde. Absorbe un
+único impacto contra un asteroide o estrella fugaz: el escudo se rompe, el
+objeto impactado se destruye (otorgando sus puntos) y la nave queda
+invencible 1 s. Se pierde al reaparecer o al avanzar de nivel.
 
 ## El código fuente y comentarios deberán estar en inglés
 
