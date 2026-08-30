@@ -217,6 +217,82 @@ class ShootingStar {
   }
 }
 
+// ── Ship skins ────────────────────────────────────────────────────────────────
+const HS_KEY   = 'asteroids.highScore';
+const SKIN_KEY = 'asteroids.skin';
+
+// Each skin: hull polygon (nose points +x), hull/flame colors, flame anchor.
+// unlockScore = high score required to unlock.
+const SKINS = [
+  {
+    id: 'classic',
+    name: 'CLASSIC',
+    unlockScore: 0,
+    color: '#fff',
+    flameColor: 'rgba(255, 130, 0, 0.85)',
+    verts: [[20, 0], [-12, -9], [-7, 0], [-12, 9]],
+    flameX: -8,
+    flameW: 4,
+  },
+  {
+    id: 'amber',
+    name: 'AMBER',
+    unlockScore: 1000,
+    color: '#ffb43c',
+    flameColor: 'rgba(255, 80, 0, 0.85)',
+    verts: [[20, 0], [-10, -12], [-5, 0], [-10, 12]],
+    flameX: -6,
+    flameW: 4,
+  },
+  {
+    id: 'neon',
+    name: 'NEON',
+    unlockScore: 2500,
+    color: '#0ff',
+    flameColor: 'rgba(0, 255, 255, 0.85)',
+    verts: [[22, 0], [-10, -6], [-4, 0], [-10, 6]],
+    flameX: -5,
+    flameW: 3,
+  },
+  {
+    id: 'ghost',
+    name: 'GHOST',
+    unlockScore: 5000,
+    color: 'rgba(255,255,255,0.5)',
+    flameColor: 'rgba(255,255,255,0.35)',
+    verts: [[18, 0], [-2, -10], [-12, 0], [-2, 10]],
+    flameX: -9,
+    flameW: 3,
+  },
+];
+
+function isSkinUnlocked(skin) {
+  return skin.unlockScore <= highScore;
+}
+
+// Cycle among unlocked skins only (hot key during gameplay).
+function cycleSkin() {
+  const unlocked = SKINS.map((s, i) => i).filter(i => isSkinUnlocked(SKINS[i]));
+  let pos = unlocked.indexOf(currentSkin);
+  if (pos === -1) pos = 0;
+  currentSkin = unlocked[(pos + 1) % unlocked.length];
+  localStorage.setItem(SKIN_KEY, currentSkin);
+}
+
+// Strokes a ship hull polygon for the given skin. Assumes the caller has
+// already translated/rotated the context to the ship frame.
+function drawShipShape(skin) {
+  ctx.strokeStyle = skin.color;
+  ctx.lineWidth   = 1.5;
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.moveTo(skin.verts[0][0], skin.verts[0][1]);
+  for (let i = 1; i < skin.verts.length; i++)
+    ctx.lineTo(skin.verts[i][0], skin.verts[i][1]);
+  ctx.closePath();
+  ctx.stroke();
+}
+
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
   constructor() { this.reset(); }
@@ -275,29 +351,19 @@ class Ship {
     // Parpadeo durante invencibilidad de reaparición
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
 
+    const skin = SKINS[currentSkin];
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth   = 1.5;
-    ctx.lineJoin    = 'round';
-
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
+    drawShipShape(skin);
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      ctx.moveTo(skin.flameX, -skin.flameW);
+      ctx.lineTo(skin.flameX - rand(6, 14), 0);
+      ctx.lineTo(skin.flameX, skin.flameW);
+      ctx.strokeStyle = skin.flameColor;
       ctx.stroke();
     }
 
@@ -396,10 +462,16 @@ class PowerUp {
 // ── Estado del juego ──────────────────────────────────────────────────────────
 let ship, bullets, asteroids, particles, powerups, shootingStars;
 let score, lives, level;
-let state;      // 'playing' | 'dead' | 'gameover'
+let state;      // 'menu' | 'playing' | 'dead' | 'gameover'
 let deadTimer;
 let powerupSpawnTimer;
 let shootingStarSpawnTimer;
+
+let highScore   = Number(localStorage.getItem(HS_KEY)) || 0;
+let currentSkin = Number(localStorage.getItem(SKIN_KEY)) || 0;
+if (!SKINS[currentSkin]) currentSkin = 0;
+let menuSkin = currentSkin;   // skin highlighted in the menu selector
+let menuRot  = 0;             // preview ship rotation
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -485,6 +557,10 @@ function killShip() {
   lives--;
   if (lives <= 0) {
     state = 'gameover';
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem(HS_KEY, highScore);
+    }
   } else {
     state     = 'dead';
     deadTimer = 2;
@@ -493,6 +569,18 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  if (state === 'menu') {
+    menuRot += dt * 0.8;
+    if (pressed('ArrowLeft'))  menuSkin = (menuSkin + SKINS.length - 1) % SKINS.length;
+    if (pressed('ArrowRight')) menuSkin = (menuSkin + 1) % SKINS.length;
+    if (pressed('Space') && isSkinUnlocked(SKINS[menuSkin])) {
+      currentSkin = menuSkin;
+      localStorage.setItem(SKIN_KEY, currentSkin);
+      initGame();
+    }
+    return;
+  }
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -521,6 +609,9 @@ function update(dt) {
   if (pressed('Space')) {
     bullets.push(...ship.tryShoot());
   }
+
+  // Hot-swap skin among unlocked ones
+  if (pressed('KeyK')) cycleSkin();
 
   ship.update(dt);
   bullets.forEach(b => b.update(dt));
@@ -611,11 +702,11 @@ function update(dt) {
 }
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
-function drawLifeIcon(x, y) {
+function drawLifeIcon(x, y, color) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = color;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
@@ -634,12 +725,13 @@ function drawHUD() {
 
   ctx.textAlign = 'left';
   ctx.fillText(`SCORE  ${score}`, 14, 26);
+  ctx.fillText(`HI     ${highScore}`, 14, 44);
 
   ctx.textAlign = 'center';
   ctx.fillText(`NIVEL ${level}`, W / 2, 26);
 
   for (let i = 0; i < lives; i++)
-    drawLifeIcon(W - 16 - i * 22, 18);
+    drawLifeIcon(W - 16 - i * 22, 18, SKINS[currentSkin].color);
 
   // Active speed power-up progress bar
   if (ship.speedTimer > 0) {
@@ -677,9 +769,61 @@ function drawOverlay(title, sub) {
   ctx.fillText(sub, W / 2, H / 2 + 22);
 }
 
+function drawMenu() {
+  const skin   = SKINS[menuSkin];
+  const locked = !isSkinUnlocked(skin);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.font      = 'bold 46px monospace';
+  ctx.fillText('ASTEROIDS', W / 2, 110);
+
+  // Rotating ship preview
+  ctx.save();
+  ctx.translate(W / 2, H / 2 - 30);
+  ctx.rotate(menuRot);
+  ctx.scale(2, 2);
+  ctx.globalAlpha = locked ? 0.35 : 1;
+  drawShipShape(skin);
+  ctx.restore();
+
+  ctx.font      = '18px monospace';
+  ctx.fillStyle = locked ? 'rgba(255,255,255,0.4)' : skin.color;
+  ctx.fillText(skin.name, W / 2, H / 2 + 62);
+  if (locked) {
+    ctx.font      = '14px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText(`BLOQUEADO — REQUIERE HI ${skin.unlockScore}`, W / 2, H / 2 + 86);
+  }
+
+  // Skin selector row
+  const spacing = 80;
+  const startX  = W / 2 - (SKINS.length - 1) * spacing / 2;
+  for (let i = 0; i < SKINS.length; i++) {
+    const s = SKINS[i];
+    ctx.save();
+    ctx.translate(startX + i * spacing, H / 2 + 150);
+    ctx.rotate(-Math.PI / 2);
+    ctx.scale(0.7, 0.7);
+    ctx.globalAlpha = (i === menuSkin ? 1 : 0.35) * (isSkinUnlocked(s) ? 1 : 0.4);
+    drawShipShape(s);
+    ctx.restore();
+  }
+
+  ctx.font      = '14px monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText('←/→ CAMBIAR SKIN   ·   ESPACIO PARA JUGAR   ·   K CAMBIA EN JUEGO', W / 2, H - 56);
+  ctx.fillText(`HI ${highScore}`, W / 2, H - 32);
+}
+
 function draw() {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
+
+  if (state === 'menu') {
+    drawMenu();
+    return;
+  }
 
   particles.forEach(p => p.draw());
   asteroids.forEach(a => a.draw());
@@ -691,7 +835,7 @@ function draw() {
   drawHUD();
 
   if (state === 'gameover')
-    drawOverlay('GAME OVER', `PUNTAJE: ${score}   —   ESPACIO PARA REINICIAR`);
+    drawOverlay('GAME OVER', `PUNTAJE: ${score}   HI: ${highScore}   —   ESPACIO PARA REINICIAR`);
 }
 
 // ── Loop principal ────────────────────────────────────────────────────────────
@@ -705,5 +849,5 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-initGame();
+state = 'menu';
 requestAnimationFrame(loop);

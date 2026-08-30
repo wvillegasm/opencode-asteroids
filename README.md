@@ -26,9 +26,10 @@ Luego visita `http://localhost:3000`.
 
 | Tecla     | Acción     |
 | --------- | ---------- |
-| `←` `→`   | Rotar nave |
+| `←` `→`   | Rotar nave (cambiar skin en el menú) |
 | `↑`       | Propulsar  |
-| `Espacio` | Disparar   |
+| `Espacio` | Disparar (iniciar partida en el menú) |
+| `K`       | Cambiar skin en juego |
 
 ## Puntuación
 
@@ -41,6 +42,7 @@ Luego visita `http://localhost:3000`.
 
 ## Características
 
+- Sistema de skins: cambia la apariencia de la nave desde el menú inicial o con `K` en juego
 - 3 vidas con invencibilidad temporal al reaparecer (parpadeo)
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
@@ -54,6 +56,20 @@ Atraviesa la pantalla una sola vez desde un borde hacia el opuesto a ~3× la
 velocidad de un asteroide normal, dejando una estela tipo cometa de color
 cálido. Otorga **200 puntos** al ser destruida pero no se parte en fragmentos.
 Desaparece al salir de la pantalla o a los 6 s. Daña la nave al contacto.
+
+## Skins
+
+El juego arranca en un menú donde se elige el skin de la nave (`←`/`→` para
+cambiar, `Espacio` para jugar). Durante la partida la tecla `K` cicla entre los
+skins desbloqueados. Los skins se desbloquean alcanzando puntajes máximos
+(guardados en `localStorage` junto con el skin elegido).
+
+| Skin    | Desbloqueo | Descripción |
+| ------- | ---------- | ----------- |
+| Classic | 0          | Silueta blanca clásica |
+| Amber   | 1000       | Dardo naranja con llama roja |
+| Neon    | 2500       | Flecha fina cian con llama cian |
+| Ghost   | 5000       | Diamante gris translúcido |
 
 ## Power-ups
 
