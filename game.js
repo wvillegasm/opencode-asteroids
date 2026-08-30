@@ -219,7 +219,7 @@ class ShootingStar {
 
 // ── Ship ──────────────────────────────────────────────────────────────────────
 class Ship {
-  constructor() { this.reset(); this.speedTimer = 0; }
+  constructor() { this.reset(); }
 
   reset() {
     this.x      = W / 2;
@@ -231,6 +231,7 @@ class Ship {
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
+    this.speedTimer    = 0;
     this.dead          = false;
   }
 
