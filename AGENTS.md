@@ -10,7 +10,7 @@
 ## Architecture
 
 - Entire game lives in one file: `game.js` (~900 lines). `index.html` loads it via a plain `<script>` tag — no imports, no modules.
-- Canvas is fixed 800×600; world is toroidal (all entities wrap edges via `wrap()`).
+- Canvas is fixed 800×600; the ship, bullets, regular asteroids, and power-ups wrap edges via `wrap()`. Shooting stars and particles do not wrap.
 - Game state that persists (chosen skin, unlocked skins, high scores) is stored in `localStorage`. When testing skin unlocks, clear the site's `localStorage` first.
 - Adding a feature means editing `game.js` in place; no codegen or build step needed to see changes — just reload the page.
 
